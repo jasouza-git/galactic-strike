@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Galactic Strike</title>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <meta name = "viewport" content = "width=device-width, minimum-scale=1.0, maximum-scale = 1.0, user-scalable = no">
+        <style>
+@font-face {
+    font-family: arcade;
+    src: url(/retro_arcade.ttf);
+}
+
+
+body {
+    width: 100%;
+    height: 100%;
+    overscroll-behavior-y: contain;
+    overflow: hidden;
+    background-color: #000;
+}
+#back {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+}
+:focus {
+    outline: none;
+}
+.joystick {
+    position: fixed;
+    bottom: 50px;
+    height: calc(50vw - 75px);
+    max-height: calc(100% - 100px);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid #000;
+    opacity: 0;
+}
+.joystick div {
+    content: '';
+    position: absolute;
+    top: 40%;
+    left: 40%;
+    width: 20%;
+    height: 20%;
+    border-radius: 50%;
+    border: 2px solid #000;
+    background-color: #333;
+}
+#move {left: 50px}
+#shoot {right: 50px}
+
+@media (orientation: portrait){
+    #move {top: 50px;bottom:auto}
+    .joystick {
+        height: calc(50% - 75px);
+        max-height: calc(100vw - 100px);
+    }
+}
+
+
+
+
+
+#menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+#menu h1 {
+    text-align: center;
+    color: #FFF;
+    text-shadow: 0 0 10px #FFF;
+    font: 100px arcade;
+}
+#menu p {
+    text-align: center;
+    color: #F00;
+    margin: 0px;
+}
+#name_area {
+    margin: 50px;
+    height: 50px;
+    display: flex
+}
+#name_area button {
+    width: 50px;
+    margin-left: 25px;
+    border: 0;
+    background-color: #000;
+    color: #FFF;
+    font-size: 20px;
+    font-weight: bold;
+}
+#name {
+    border: 2px solid #FFF;
+    background: none;
+    color: #FFF;
+    padding: 10px;
+    font-size: 20px;
+    flex-grow: 1;
+    width: 100px;
+    box-shadow: 0 0 10px #FFF;
+    display: flex;
+}
+#name::before {
+    content: '';
+    box-shadow: inset 0 0 10px #FFF;
+}
+
+        </style>
+    </head>
+    <body>
+        <div id="back"></div>
+        <div id="move" class="joystick"><div></div></div>
+        <div id="shoot" class="joystick"><div></div></div>
+        <p id="log"></p>
+        <iframe id="screen" src="/screen" style="position:fixed;left:0;top:0;width:100%;height:100%;border:0;opacity:.3"></iframe>
+        <div style="position:fixed;left:0;top:0;width:100%;height:100%;border:0"></div>
+        <div id="menu">
+            <h1>Galactic Strike</h1>
+            <div id="name_area">
+                <input id="name" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Enter your name"></input>
+                <button id="login">GO</button>
+            </div>
+        </div>
+        <script>
+var socket;
+var name = '';
+var controls = {
+    'direct': false,
+    'keys': {
+        move: [false, false, false, false],  // ADWS
+        shoot: [false, false, false, false], // Left, Right, Up, Down
+    },
+    'move': {
+        active: false,
+        vector: [0,0]
+    },
+    'shoot': {
+        active: false,
+        vector: [0,0]
+    }
+}
+function Id(id){return document.getElementById(id)};
+
+
+onload = function(){
+
+
+socket = io();
+/*
+socket.on('logging', (arg, callback) => {
+    if(arg[1] == name){
+        if(arg[0]) LoadContoller();
+        else Id('error').textContent = `"${name}" is already taken`;
+    }
+});*/
+Id('name').onkeyup = e=>{
+    if(e.keyCode == 13) Id('login').click();
+    Id('error').textContent = '';
+};
+Id('login').onclick = e=>{
+    Id('name').focus();
+    name = Id('name').value;
+    var h = new XMLHttpRequest();
+    h.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            if(h.responseText == 'true'){
+                socket.emit('join', {name: Id('name').value, room: 'main', type: 0});
+                LoadContoller();
+            }
+            else Id('error').textContent = 'Name is taken';
+        }
+    };
+    h.open('GET', `/name_available?name=${encodeURIComponent(Id('name').value)}&room=main`, true);
+    h.send();
+};
+Id('move').ontouchstart = function(e){
+    controls['move'].active = true;
+    Drag(e);
+};
+Id('move').ontouchmove = Drag;
+Id('move').ontouchend = function(e){
+    this.children[0].style.left = '40%';
+    this.children[0].style.top = '40%';
+    controls['move'].active = false;
+};
+Id('shoot').ontouchstart = function(e){
+    controls['shoot'].active = true;
+    Drag(e);
+};;
+Id('shoot').ontouchmove = Drag;
+Id('shoot').ontouchend = function(e){
+    this.children[0].style.left = '40%';
+    this.children[0].style.top = '40%';
+    controls['shoot'].active = false;
+};
+document.body.onkeydown = function(e){
+    if(!controls['direct']) return;
+    // Move Left
+    if(e.keyCode == 65) controls.keys.move[0] = true;
+    // Move Right
+    if(e.keyCode == 68) controls.keys.move[1] = true;
+    // Move Top
+    if(e.keyCode == 87) controls.keys.move[2] = true;
+    // Move Down
+    if(e.keyCode == 83) controls.keys.move[3] = true;
+    // Shoot Left
+    if(e.keyCode == 37) controls.keys.shoot[0] = true;
+    // Shoot Right
+    if(e.keyCode == 39) controls.keys.shoot[1] = true;
+    // Shoot Top
+    if(e.keyCode == 38) controls.keys.shoot[2] = true;
+    // Shoot Down
+    if(e.keyCode == 40) controls.keys.shoot[3] = true;
+};
+
+document.body.onkeyup = function(e){
+    if(!controls['direct']) return;
+    // Move Left
+    if(e.keyCode == 65) controls.keys.move[0] = false;
+    // Move Right
+    if(e.keyCode == 68) controls.keys.move[1] = false;
+    // Move Top
+    if(e.keyCode == 87) controls.keys.move[2] = false;
+    // Move Down
+    if(e.keyCode == 83) controls.keys.move[3] = false;
+    // Shoot Left
+    if(e.keyCode == 37) controls.keys.shoot[0] = false;
+    // Shoot Right
+    if(e.keyCode == 39) controls.keys.shoot[1] = false;
+    // Shoot Top
+    if(e.keyCode == 38) controls.keys.shoot[2] = false;
+    // Shoot Down
+    if(e.keyCode == 40) controls.keys.shoot[3] = false;
+};
+
+};
+
+function LoadScreen(){
+    var s = document.createElement('iframe');
+    s.setAttribute('src', '/screen');
+    s.setAttribute('style', 'position:fixed;left:0;top:0;width:100%;height:100%;border:0;opacity:.5');
+    var d = document.createElement('div');
+    d.setAttribute('style', 'position:fixed;left:0;top:0;width:100%;height:100%;border:0;opacity:.5');
+    document.body.appendChild(s);
+    document.body.appendChild(d);
+}
+
+function LoadContoller(){
+    document.getElementById('menu').style.display = 'none';
+    controls['direct'] = !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
+    if (document.body.requestFullscreen) {
+        document.body.requestFullscreen();
+    } else if (document.body.webkitRequestFullscreen) { /* Safari */
+        document.body.webkitRequestFullscreen();
+    } else if (document.body.msRequestFullscreen) { /* IE11 */
+        document.body.msRequestFullscreen();
+    }
+    if(controls['direct']){
+        Id('screen').style.opacity = 1;
+    }
+}
+function Drag(e){
+    var x = 2*(e.targetTouches[0].clientX-this.getBoundingClientRect().x)/this.getBoundingClientRect().width-1;
+    var y = 2*(e.targetTouches[0].clientY-this.getBoundingClientRect().y)/this.getBoundingClientRect().height-1;
+    if(x<-1) x=-1;
+    if(x>1) x=1;
+    if(y<-1) y=-1;
+    if(y>1) y=1;
+    var h = Math.hypot(x,y);
+    if(h>1){
+        x /= h;
+        y /= h;
+    }
+    this.children[0].style.left = 50*x+40 + '%';
+    this.children[0].style.top = 50*y+40 + '%';
+    if(window.innerHeight > window.innerWidth) [x,y] = [y,-x];
+    controls[this.getAttribute('id')].vector = [x,y];
+    /*if(this.getAttribute('id') == 'move') socket.emit('moving', [x,y]);
+    else if(this.getAttribute('id') == 'shoot') socket.emit('shooting', [x,y]);*/
+    e.preventDefault();
+}
+setInterval(function(){
+    if(controls.direct){
+        if(!controls.keys.move.every(x=>!x)){
+            controls.move.active = true;
+            controls.move.vector = [0, 0];
+            if(controls.keys.move[0]) controls.move.vector[0]--;
+            if(controls.keys.move[1]) controls.move.vector[0]++;
+            if(controls.keys.move[2]) controls.move.vector[1]--;
+            if(controls.keys.move[3]) controls.move.vector[1]++;
+            var hypot = Math.hypot(controls.move.vector[0], controls.move.vector[1]);
+            controls.move.vector[0] /= hypot;
+            controls.move.vector[1] /= hypot;
+        } else controls.move.active = false;
+        
+        if(!controls.keys.shoot.every(x=>!x)){
+            controls.shoot.active = true;
+            controls.shoot.vector = [0, 0];
+            if(controls.keys.shoot[0]) controls.shoot.vector[0]--;
+            if(controls.keys.shoot[1]) controls.shoot.vector[0]++;
+            if(controls.keys.shoot[2]) controls.shoot.vector[1]--;
+            if(controls.keys.shoot[3]) controls.shoot.vector[1]++;
+            var hypot = Math.hypot(controls.shoot.vector[0], controls.shoot.vector[1]);
+            controls.shoot.vector[0] /= hypot;
+            controls.shoot.vector[1] /= hypot;
+        } else controls.shoot.active = false;
+    }
+    if(controls['move'].active) socket.emit('moving', controls['move'].vector);
+    if(controls['shoot'].active) socket.emit('shooting', controls['shoot'].vector);
+},1000/60);
+
+
+// Load screen
+
+
+        </script>
+    </body>
+</html>
