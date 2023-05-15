@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Galactic Strike</title>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="/engine.js"></script>
+    </head>
+    <body>
+        <div style="position:fixed;left:0;top:0;width:100%;height:100%;background-color:#000"></div>
+        <div style="position:fixed;left:0;top:0;width:100%;height:100%;background-color:#000;background-image:radial-gradient(#111 25%, #000 100%);background-size:100% 100%;opacity:.75"></div>
+        <svg xmlns="http://www.w3.org/2000/svg">
+            <filter id="retro" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+                <feComponentTransfer>
+                    <feFuncR type="identity"/>
+                    <feFuncG type="identity"/>
+                    <feFuncB type="identity"/>
+                    <feFuncA type="discrete" tableValues="0 1"/>
+                </feComponentTransfer>
+            </filter>
+        </svg>
+        <canvas id="screen"></canvas>
+<script defer>
+var net, serv, game, room = new URLSearchParams(window.location.search).get('room') || 'secondary';
+onload = function(){
+    // Connect to main server has an independent client server(type 2) at a room(room)
+    net = new socket(room, 2);
+    // Create a server and host it to main server
+    serv = new server(room);
+    serv.host(net);
+    // Render the server instead of requesting main server
+    game = new render();
+    game.bind(serv);
+};
+</script>
+    </body>
+</html>

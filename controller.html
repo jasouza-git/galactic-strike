@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Galactic Strike</title>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="/engine.js"></script>
+        <meta name = "viewport" content = "width=device-width, minimum-scale=1.0, maximum-scale = 1.0, user-scalable = no">
+        <style>
+@font-face {
+    font-family: arcade;
+    src: url(/retro_arcade.ttf);
+}
+
+
+body {
+    width: 100%;
+    height: 100%;
+    overscroll-behavior-y: contain;
+    overflow: hidden;
+    background-color: #000;
+}
+#back {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+}
+:focus {
+    outline: none;
+}
+.joystick {
+    position: fixed;
+    bottom: 50px;
+    height: calc(50vw - 75px);
+    max-height: calc(100% - 100px);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid #000;
+    opacity: 0;
+}
+.joystick div {
+    content: '';
+    position: absolute;
+    top: 40%;
+    left: 40%;
+    width: 20%;
+    height: 20%;
+    border-radius: 50%;
+    border: 2px solid #000;
+    background-color: #333;
+}
+#move {left: 50px}
+#shoot {right: 50px}
+
+@media (orientation: portrait){
+    #move {top: 50px;bottom:auto}
+    .joystick {
+        height: calc(50% - 75px);
+        max-height: calc(100vw - 100px);
+    }
+}
+
+
+
+
+
+#menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+#menu h1 {
+    text-align: center;
+    color: #FFF;
+    text-shadow: 0 0 10px #FFF;
+    font: 100px arcade;
+}
+#menu p {
+    text-align: center;
+    color: #F00;
+    margin: 0px;
+}
+#name_area {
+    margin: 50px;
+    height: 50px;
+    display: flex
+}
+#name_area button {
+    width: 50px;
+    margin-left: 25px;
+    border: 0;
+    background-color: #000;
+    color: #FFF;
+    font-size: 20px;
+    font-weight: bold;
+}
+#name {
+    border: 2px solid #FFF;
+    background: none;
+    color: #FFF;
+    padding: 10px;
+    font-size: 20px;
+    flex-grow: 1;
+    width: 100px;
+    box-shadow: 0 0 10px #FFF;
+    display: flex;
+}
+#name::before {
+    content: '';
+    box-shadow: inset 0 0 10px #FFF;
+}
+
+        </style>
+    </head>
+    <body>
+        <div id="back"></div>
+        <div id="move" class="joystick"><div></div></div>
+        <div id="shoot" class="joystick"><div></div></div>
+        <p id="log"></p>
+        <iframe id="screen" src="/screen" style="position:fixed;left:0;top:0;width:100%;height:100%;border:0;opacity:.3"></iframe>
+        <div id="screen_case" style="position:fixed;left:0;top:0;width:100%;height:100%;border:0"></div>
+        <div id="menu">
+            <h1>Galactic Stike</h1>
+            <div id="name_area">
+                <input id="name" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Enter your name"></input>
+                <button id="login">GO</button>
+            </div>
+        </div>
+<script defer>
+var net, name;
+onload = function(){
+    net = new socket()
+
+    // Clear errors when user is typing, login if user enters
+    simply.id('name').onkeyup = e => {
+        if(e.keyCode == 13) simply.id('login').click();
+        simply.id('error').textContent = '';
+    };
+
+    // Check if name is taken, if not then join socket into the room
+    simply.id('login').onclick = e => {
+        simply.id('name').focus();
+        name = simply.id('name').value;
+        simply.http({ url: '/name_available', arg: {name:name, room:'main'}, err: err => simply.id('error').textContent = `Error code ${err}`, get: text => {
+            if(text == 'true'){
+                net.join('main', 0, name);
+                simply.id('screen').style.opacity = 1;
+                simply.id('menu').style.display = 'none';
+                simply.fullscreen();
+                if(simply.istouch()){
+                    simply.id('screen').remove();
+                    simply.id('screen_cover').remove();
+                }
+            } else simply.id('error').textContent = 'Name is taken';
+        }});
+    }
+
+    // Activate the "move" and "shoot" joysticks
+    var move = new simply.joystick(simply.id('move'));
+    var shot = new simply.joystick(simply.id('shoot'));
+
+    // Keep on sending data
+    setInterval(function(){
+        if(move.active) net.send('moving', move.vector);
+        if(shot.active) net.send('shooting', shot.vector);
+    }, 1000/config.fps);
+};
+
+
+
+</script>
+    </body>
+</html>
