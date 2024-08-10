@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Galactic Strike</title>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="/script.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="/style.css">
+    </head>
+    <body>
+        <canvas id="star"></canvas>
+        <div class="jysk" id="jmove"></div>
+        <div class="jysk" id="jface"></div>
+        <div id="menu" class="on">
+            <img src="/titlecard.png"></img>
+            <span></span>
+            <input id="room" class="on" type="text" placeholder="ROOM:" value="main"></input>
+            <input id="name" class="on" type="text" placeholder="PLAYER:"></input>
+            <button>PLAY</button>
+        </div>
+        <div id="play">
+            <img src="/titlecard.png"></img>
+            <div id="move"></div>
+            <div id="face"></div>
+            <div id="sep"></div>
+            <h1 id="move_text">MOVEMENT</h1>
+            <h1 id="face_text">DIRECTION</h1>
+        </div>
+    </body>
+</html>
