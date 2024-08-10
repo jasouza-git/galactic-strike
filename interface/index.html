@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Galactic Strike</title>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="/engine.js"></script>
+        <script defer src="/galactic_strike.js"></script>
+        <script defer src="script.js"></script>
+        <meta name = "viewport" content = "width=device-width, minimum-scale=1.0, maximum-scale = 1.0, user-scalable = no">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="game">
+            <canvas id="star"></canvas>
+            <canvas id="glow"></canvas>
+            <canvas id="play"></canvas>
+            <canvas id="line"></canvas>
+        </div>
+        <div id="menu" class="on">
+            <img src="titlecard.png"></img>
+            <span></span>
+            <input class="on" type="text" placeholder="ENTER PLAYER NAME:"></input>
+            <button>PLAY</button>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg">
+            <filter id="retro" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+                <feComponentTransfer>
+                    <feFuncR type="identity"/>
+                    <feFuncG type="identity"/>
+                    <feFuncB type="identity"/>
+                    <feFuncA type="discrete" tableValues="0 1"/>
+                </feComponentTransfer>
+            </filter>
+        </svg>
+    </body>
+</html>
